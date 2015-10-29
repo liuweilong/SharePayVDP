@@ -1,0 +1,25 @@
+{
+  "SystemsTraceAuditNumber": "701050",
+  "RetrievalReferenceNumber": "607088101050",
+  "AcquiringBin": "409999",
+  "AcquirerCountryCode": "101",
+  "PrimaryAccountNumber": "4957030420210462",
+  "CardExpiryDate": "2015-10",
+  "CardCvv2Value": "022",
+  "Avs": {
+    "Street": "900 Metro Center Blv",
+    "PostalCode": "94404"
+  },
+  "CardAcceptor": {
+    "Name": "ABC",
+    "TerminalId": "123",
+    "IdCode": "45678",
+    "Address": {
+      "City": "San Francisco",
+      "State": "CA",
+      "County": "075",
+      "Country": "USA",
+      "ZipCode": "94404"
+    }
+  }
+}

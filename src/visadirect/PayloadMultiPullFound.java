@@ -9,20 +9,16 @@ public class PayloadMultiPullFound extends PayloadCommon{
 	
 	private List<PayloadMulltiPullSingleRequest> request = new ArrayList<PayloadMulltiPullSingleRequest>();
 	
-	public PayloadMultiPullFound(SimpleDateFormat retrievalReferenceFormat,
-			SimpleDateFormat localTransactionDateTimeFormat,
-			Date now,
+	public PayloadMultiPullFound(Date now,
 			List<Transaction> transactions) {
-		super(retrievalReferenceFormat, localTransactionDateTimeFormat, now);
-		this.setup(retrievalReferenceFormat, localTransactionDateTimeFormat, now, transactions);
+		super(now);
+		this.setup(now, transactions);
 	}
 	
-	private void setup(SimpleDateFormat retrievalReferenceFormat,
-			SimpleDateFormat localTransactionDateTimeFormat,
-			Date now,
+	private void setup(Date now,
 			List<Transaction> transactions) {
 		for (Transaction transaction : transactions) {
-			PayloadMulltiPullSingleRequest payload = new PayloadMulltiPullSingleRequest(transaction, retrievalReferenceFormat, localTransactionDateTimeFormat, now);
+			PayloadMulltiPullSingleRequest payload = new PayloadMulltiPullSingleRequest(transaction, now);
 			request.add(payload);
 		}
 	}

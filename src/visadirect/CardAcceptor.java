@@ -7,7 +7,7 @@ public class CardAcceptor {
 	private Address address;
 	
 	public CardAcceptor() {
-		this.name = "Acceptor 1";
+		this.name = "Ram Dodge";
 		this.terminalId = "365539";
 		this.idCode = "VMT200911026070";
 		this.address = new Address("USA", "CA", "081", "94404");

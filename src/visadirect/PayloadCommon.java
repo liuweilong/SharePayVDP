@@ -15,7 +15,7 @@ public abstract class PayloadCommon {
 	private final String businessApplicationId = "AA";
 	private final String merchantCategoryCode = "6012";
 	
-	public PayloadCommon(SimpleDateFormat retrievalReferenceFormat, SimpleDateFormat localTransactionDateTimeFormat, Date now){
-		this.localTransactionDateTime = Utility.generateLocalTransactionDateTime(localTransactionDateTimeFormat, now);
+	public PayloadCommon(Date now){
+		this.localTransactionDateTime = Utility.generateLocalTransactionDateTime(Config.LOCAL_TRANSACTION_DATETIME_FORMAT, now);
 	}
 }

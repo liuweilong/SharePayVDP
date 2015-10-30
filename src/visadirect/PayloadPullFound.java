@@ -19,17 +19,13 @@ public class PayloadPullFound extends PayloadCommon{
 	private HashMap<String, String> pointOfServiceData = new HashMap<String, String>();;
 	private HashMap<String, String> pointOfServiceCapability = new HashMap<String, String>();
 
-	public PayloadPullFound(SimpleDateFormat retrievalReferenceFormat,
-			SimpleDateFormat localTransactionDateTimeFormat,
-			Date now,
+	public PayloadPullFound(Date now,
 			Transaction transaction) {
-		super(retrievalReferenceFormat, localTransactionDateTimeFormat, now);
-		this.setup(retrievalReferenceFormat, localTransactionDateTimeFormat, now, transaction);
+		super(now);
+		this.setup(now, transaction);
 	}
 
-	private void setup(SimpleDateFormat retrievalReferenceFormat,
-			SimpleDateFormat localTransactionDateTimeFormat,
-			Date now,
+	private void setup(Date now,
 			Transaction transaction) {
 		this.amount = transaction.getAmount();
 		this.senderPrimaryAccountNumber = transaction.getActionAccount().getAccountNumber();
@@ -43,7 +39,7 @@ public class PayloadPullFound extends PayloadCommon{
 		this.pointOfServiceCapability.put("posTerminalEntryCapability", "2");
 		this.pinData = new PinData("1cd948f2b961b682");
 		this.cardAcceptor = new CardAcceptor();
-		this.retrievalReferenceNumber = Utility.generateRetrievalReferenceNumber(retrievalReferenceFormat, now);
+		this.retrievalReferenceNumber = Utility.generateRetrievalReferenceNumber(Config.RETRIVAL_REFERENCE_FORMAT, now);
 		this.systemsTraceAuditNumber = Utility.generateSystemsTraceAuditNumber();
 	}
 }

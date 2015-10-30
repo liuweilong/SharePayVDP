@@ -22,14 +22,12 @@ public class PayloadPushFound extends PayloadCommon{
 	private HashMap<String, String> magneticStripeData = new HashMap<String, String>();
 	private PinData pinData;
 
-	public PayloadPushFound(SimpleDateFormat retrievalReferenceFormat,
-			SimpleDateFormat localTransactionDateTimeFormat, 
-			Date now, 
+	public PayloadPushFound(Date now, 
 			String sourceofFundsCode, 
 			String transactionId, 
 			Transaction transaction,
 			Account sender) {
-		super(retrievalReferenceFormat, localTransactionDateTimeFormat, now);
+		super(now);
 		
 		this.recipientPrimaryAccountNumber = transaction.getActionAccount().getAccountNumber();
 		this.amount = transaction.getAmount();
@@ -38,7 +36,7 @@ public class PayloadPushFound extends PayloadCommon{
 		this.senderAccountNumber = sender.getAccountNumber();
 		
 		this.systemsTraceAuditNumber = Utility.generateSystemsTraceAuditNumber();
-		this.retrievalReferenceNumber = Utility.generateRetrievalReferenceNumber(retrievalReferenceFormat, now);
+		this.retrievalReferenceNumber = Utility.generateRetrievalReferenceNumber(Config.RETRIVAL_REFERENCE_FORMAT, now);
 		this.cardAcceptor = new CardAcceptor();
 		
 		// Fixed

@@ -4,16 +4,21 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.StringEntity;
@@ -23,21 +28,20 @@ import org.apache.http.ssl.SSLContexts;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 public class VisaDirectMethodsImpl implements VisaDirectMethods {
 	
-	private static SimpleDateFormat retrievalReferenceFormat = new SimpleDateFormat("Dwwhhmmss");
-	private static SimpleDateFormat localTransactionDateTimeFormat = new SimpleDateFormat("YYYY-MM-dd'T'hh:mm:ss");
 	private static String KEY_STORE_PATH = "/keys/clientkeystore.jks";
 	private static String STORE_PASSWORD = "password";
 	private static String KEY_PASSWORD = "password";
 	private static String VDP_U_ID = "O83CSVTPWHCD9WH6W9J321UvQ5JzMNc_8s6xWnvc-yXKshhYo";
 	private static String VDP_PASSWORD = "7lUXlvBwAFV120yyk4UIY";
-	private static String API_PUSH_POST = "https://sandbox.api.visa.com/visadirect/fundstransfer/v1/pushfundstransactions";
-	private static String API_MULTI_PULL_POST = "https://sandbox.api.visa.com/visadirect/fundstransfer/v1/multipullfundstransactions";
-	private static String API_MULTI_PULL_GET = "https://sandbox.api.visa.com/visadirect/fundstransfer/v1/multipullfundstransactions/";
+	private static String API_PUSH = "https://sandbox.api.visa.com/visadirect/fundstransfer/v1/pushfundstransactions";
+	private static String API_MULTI_PULL = "https://sandbox.api.visa.com/visadirect/fundstransfer/v1/multipullfundstransactions";
 	
 	CloseableHttpClient httpClient = null;
+	String transactionNumber = null;
 	
 	public VisaDirectMethodsImpl() {
 		File keyStore;
@@ -53,7 +57,6 @@ public class VisaDirectMethodsImpl implements VisaDirectMethods {
 			httpClient = HttpClients.custom()
 			            .setSSLSocketFactory(sslSocketFactory).build();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -69,8 +72,32 @@ public class VisaDirectMethodsImpl implements VisaDirectMethods {
 			amount += transaction.getAmount();
 		}
 		
-		if (multiPullFundsTransactionsPost(sendTransactions)) {
-			boolean result = pushFundsTransactionsPost(new Transaction(receiverAccount, amount, false), "234234234234234", "05");
+		String xTransactionId = Utility.generateXTransactionId();
+		
+		String multiPullResult = multiPullFundsTransactionsPost(sendTransactions, xTransactionId);
+		
+		if (multiPullResult != null) {
+			// Execute get
+			String transactionNumber = null;
+			Type type = new TypeToken<Map<String, String>>(){}.getType();
+			Map<String, String> multiPullResultMap = new Gson().fromJson(multiPullResult, type);
+			for (String key : multiPullResultMap.keySet()) {
+				if (key.equals("transactionNumber")) {
+					transactionNumber = multiPullResultMap.get(key);
+				}
+			}
+			
+			if (transactionNumber == null) {
+				return false;
+			}
+			
+			boolean multiPullGetResult = multiPullFundsTransactionGet(transactionNumber, xTransactionId);
+			
+			if (multiPullGetResult == false) {
+				return multiPullGetResult;
+			}
+			
+			pushFundsTransactionsPost(new Transaction(receiverAccount, amount, false), "234234234234234", "05");
 			try {
 				httpClient.close();
 			} catch (IOException e) {
@@ -88,18 +115,42 @@ public class VisaDirectMethodsImpl implements VisaDirectMethods {
 		}
 	}
 	
-	private boolean multiPullFundsTransactionsPost(List<Transaction> senderAccounts) {
-		HttpPost request = new HttpPost(API_MULTI_PULL_POST);
-		this.processPostRequest(request);
+	private String multiPullFundsTransactionsPost(List<Transaction> senderAccounts, String xTransactionId) {
+		HttpPost request = new HttpPost(API_MULTI_PULL);
+		this.processRequest(request);
+		request.setHeader("x-client-transaction-id", xTransactionId); // This is required by multiple pull
 		
-		PayloadMultiPullFound body = new PayloadMultiPullFound(retrievalReferenceFormat, localTransactionDateTimeFormat, new Date(), senderAccounts);
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String bodystr = gson.toJson(body);
-//		System.out.println(bodystr);
+		PayloadMultiPullFound body = new PayloadMultiPullFound(new Date(), senderAccounts);
+		return executePostRequestWithPayload(request, body);
+	}
+	
+	private boolean multiPullFundsTransactionGet(String transactionNumber, String xTransactionId) {
+		if (transactionNumber == null) {
+			return false;
+		}
+		
+		String requestUrl = API_MULTI_PULL + "/" + transactionNumber;
+		System.out.println(transactionNumber);
+		System.out.println(xTransactionId);
+		HttpGet request = new HttpGet(requestUrl);
+		this.processRequest(request);
+		request.setHeader("x-client-transaction-id", xTransactionId);
+		
+		return executeGetRequest(request);
+	}
+	
+	private String pushFundsTransactionsPost(Transaction transaction, String transactionId, String sourceofFundsCode) {
+		Account sender = new Account("1234567890123456", "2013-03", "USD");
+		HttpPost request = new HttpPost(API_PUSH);
+		this.processRequest(request);
+		
+		PayloadPushFound body = new PayloadPushFound(new Date(), sourceofFundsCode, transactionId, transaction, sender);
+		return executePostRequestWithPayload(request, body);
+	}
+	
+	private boolean executeGetRequest(HttpGet get) {
 		try {
-			StringEntity params = new StringEntity(bodystr);
-			request.setEntity(params);
-			HttpResponse response = httpClient.execute(request);
+			HttpResponse response = httpClient.execute(get);
 			BufferedReader rd = new BufferedReader
 					  (new InputStreamReader(response.getEntity().getContent()));
 					
@@ -114,27 +165,20 @@ public class VisaDirectMethodsImpl implements VisaDirectMethods {
 			e.printStackTrace();
 			return false;
 		}
-		
 		return true;
 	}
 	
-	private boolean pushFundsTransactionsPost(Transaction transaction, String transactionId, String sourceofFundsCode) {
-		Account sender = new Account("1234567890123456", "2013-03", "USD");
-		HttpPost request = new HttpPost(API_PUSH_POST);
-		this.processPostRequest(request);
-		
-		PayloadPushFound body = new PayloadPushFound(retrievalReferenceFormat, localTransactionDateTimeFormat, new Date(), sourceofFundsCode, transactionId, transaction, sender);
+	private String executePostRequestWithPayload(HttpPost post, PayloadCommon payload) {
+		String result = "";
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String bodystr = gson.toJson(body);
-//		System.out.println(bodystr);
+		String bodystr = gson.toJson(payload);
 		try {
 			StringEntity params = new StringEntity(bodystr);
-			request.setEntity(params);
-			HttpResponse response = httpClient.execute(request);
+			post.setEntity(params);
+			HttpResponse response = httpClient.execute(post);
 			BufferedReader rd = new BufferedReader
 					  (new InputStreamReader(response.getEntity().getContent()));
-					
-			String result = "";
+			
 			String line = "";
 			while ((line = rd.readLine()) != null) {
 				result += line += "\n";
@@ -143,19 +187,16 @@ public class VisaDirectMethodsImpl implements VisaDirectMethods {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return false;
 		}
-		
-		return true;
+		return result;
 	}
-
-	private boolean processPostRequest(HttpPost request) {
+	
+	private boolean processRequest(HttpRequest request) {
 		request.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 		request.setHeader(HttpHeaders.ACCEPT, "application/json");
 		String autho = VDP_U_ID + ":" + VDP_PASSWORD;
 		String authoBase64 = new String(Base64.encodeBase64(autho.getBytes()));
 		request.setHeader(HttpHeaders.AUTHORIZATION, "Basic " + authoBase64);
-		request.setHeader("x-client-transaction-id", "234234234234234"); // This is required by multiple pull
 		return true;
 	}
 }

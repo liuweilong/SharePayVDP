@@ -18,9 +18,8 @@ public class PayloadMulltiPullSingleRequest {
 	private double amount;
 	private HashMap<String, String> magneticStripeData = new HashMap<String, String>();
 	private PinData pinData;
-//	private String transactionId;
 	
-	public PayloadMulltiPullSingleRequest(Transaction transaction, SimpleDateFormat retrievalReferenceFormat, SimpleDateFormat localTransactionDateTimeFormat, Date now) {
+	public PayloadMulltiPullSingleRequest(Transaction transaction, Date now) {
 		// Customized
 		this.senderPrimaryAccountNumber = transaction.getActionAccount().getAccountNumber();
 		this.senderCardExpiryDate = transaction.getActionAccount().getCardExpiryDate();
@@ -29,8 +28,8 @@ public class PayloadMulltiPullSingleRequest {
 		
 		// Generated
 		this.systemsTraceAuditNumber = Utility.generateSystemsTraceAuditNumber();
-		this.retrievalReferenceNumber = Utility.generateRetrievalReferenceNumber(retrievalReferenceFormat, now);
-		this.localTransactionDateTime = Utility.generateLocalTransactionDateTime(localTransactionDateTimeFormat, now);
+		this.retrievalReferenceNumber = Utility.generateRetrievalReferenceNumber(Config.RETRIVAL_REFERENCE_FORMAT, now);
+		this.localTransactionDateTime = Utility.generateLocalTransactionDateTime(Config.LOCAL_TRANSACTION_DATETIME_FORMAT, now);
 		this.cardAcceptor = new CardAcceptor();
 		
 		// Fixed
